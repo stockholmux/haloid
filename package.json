@@ -1,6 +1,7 @@
 {
   "name": "haloid",
-  "version": "0.1.0",
+	"main": "./haloid.module.node.js",
+  "version": "0.1.1",
   "description": "Combine Passwordless, Redis, and Express to build an awesome web application",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
