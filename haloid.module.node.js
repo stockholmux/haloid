@@ -37,6 +37,9 @@ var
     blocked : true
   },
   
+  compileTemplates,
+  compileClientTemplates,
+  
   thisRedisStore,
   client;
   
@@ -55,7 +58,7 @@ var
  * haloid.rk('a','b','c'); //returns a:b:c
  */ 
 function rk() {
-  return Array.prototype.slice.call(arguments).join(':')
+  return Array.prototype.slice.call(arguments).join(':');
 }  
 
 
@@ -76,7 +79,7 @@ function addTemplate(aTemplate) {
     }    
     req.html = aTemplate(req.haloidValues);
     next();
-  }
+  };
 }
 
 /**
@@ -115,7 +118,7 @@ function setup(newSettings) {
  *
  */
 function defaultDelivery(tokenToSend, uidToSend, recipient, cb) {
-  console.log('?token='+tokenToSend+'&uid='+encodeURIComponent(uidToSend), 'recp',recipient)
+  console.log('?token='+tokenToSend+'&uid='+encodeURIComponent(uidToSend), 'recp',recipient);
   cb();
 }
 
@@ -130,11 +133,13 @@ function defaultDelivery(tokenToSend, uidToSend, recipient, cb) {
  *
  */
 function haloidUse(app) {
-  thisRedisStore = new RedisStore(settings.redis.port, settings.redis.ip)
+  thisRedisStore = new RedisStore(settings.redis.port, settings.redis.ip);
   
   passwordless.init(thisRedisStore);
   
   passwordless.addDelivery(module.exports.tokenDelievery);
+  
+  module.exports.requestToken = passwordless.requestToken(tokenRequestProcess, { failureRedirect: settings.loginFailurePath }),
   
   app.use(
     expressSession({
@@ -215,6 +220,26 @@ function announceRoute(aVerb,aRoute){
 }
 
 /**
+ * Factory to create compileTemplates and compileTemplatesClient
+ * 
+ * @private
+ */
+function createTemplateCompiler(compilerFnName) {
+  return function(templates) {
+    return mapValues(templates, function(aTemplateSlug){
+      var
+        filename = settings.templatesDirectory+aTemplateSlug+'.jade'
+      return jade[compilerFnName](
+        fs.readFileSync(filename),
+        {
+          pretty    : true,
+          filename  : filename
+        }
+      );
+    });
+  };
+}
+/**
  * Compiles all the templates. This operation is prefomed synchronously, so it is only appropriate during startup.  
  *
  * @static
@@ -224,20 +249,20 @@ function announceRoute(aVerb,aRoute){
  * @returns
  * 
  */
-function compileTemplates(templates) {
-  return mapValues(templates, function(aTemplateSlug){
-    var
-      filename = settings.templatesDirectory+aTemplateSlug+'.jade'
-    return jade.compile(
-      fs.readFileSync(filename),
-      {
-        pretty    : true,
-        filename  : filename
-      }
-    );
-  });
-}
+ compileTemplates = createTemplateCompiler('compile');
 
+ /**
+ * Compiles all client templates. This operation is prefomed synchronously, so it is only appropriate during startup.  
+ *
+ * @static
+ * @memberOf haloid
+ * @category tools
+ * @param {object} templates An object of templates. Should structured like `{ home : 'home', dashboard : 'dashboard'}`. The `settings.templatesDirectory` is prepended to the value and the extension '.jade' is appended. So, if `settings.templatesDirectory` was set to './templates/', the above example would read and compile './templates/home.jade' and './templates/dashboard.jade'.
+ * @returns
+ * 
+ */
+ compileClientTemplates = createTemplateCompiler('compileClient');
+ 
 /**
  * Stub function that defines how user emails are hashed. This is not for security purposes, but primarily to ensure consistent keys that are compatible with both redis, routes and query strings. By default, this uses hex encoded MD5. As this is a stub function, feel free to override it in your application.
  *
@@ -269,7 +294,7 @@ function tokenRequestProcess(email, delivery, cb) {
       if (userExists === 0) {
         cb(null,null); //unknown user
       } else {
-        cb(null,userLookup)
+        cb(null,userLookup);
       }
     }
   });
@@ -338,7 +363,7 @@ function fetchCapabilities(capabilitiesList,dest) {
         next();
       }
     });
-  }
+  };
 }
 
 /**
@@ -413,7 +438,7 @@ function userCan() {
  *
  */
   var
-    userCanArguments = arguments;
+    userCanArguments =  Array.prototype.slice.call(arguments);
     
   return function(req,res,next) {
     if (req.user) {
@@ -429,7 +454,7 @@ function userCan() {
           if (capabSum === userCanArguments.length) {
             next();
           } else {
-            module.exports.genericError({ status : 401 },req,res)
+            module.exports.genericError({ status : 401 },req,res);
           }
         }
       });
@@ -575,7 +600,7 @@ function changeProfileData(req,res,next) {
       } else {
         out[uid] = {};
         out[uid][field] = newValue;
-        res.send(out)
+        res.send(out);
       }
     });
   }
@@ -946,7 +971,7 @@ function logoutToken(req,res,next) {
         res.send( { status : 'ok'});
       }
     }
-  )
+  );
 }
 
 /**
@@ -990,7 +1015,7 @@ function deleteUser(req,res,next) {
  */
 function userLogger(req,res,next) {
   if (req.userProfile) {
-    console.log(new Date().getTime(), req.userProfile.email, req.originalUrl)
+    console.log(new Date().getTime(), req.userProfile.email, req.originalUrl);
   }
 
   next();
@@ -1072,11 +1097,13 @@ module.exports = {
   profileData       : profileData,
   userLookupHash    : userLookupHash,
   routes            : routes,
-  requestToken      : passwordless.requestToken(tokenRequestProcess, { failureRedirect: settings.loginFailurePath }),
+  
   announceRoute     : announceRoute,
   sendPage          : sendIt,
   addTemplate       : addTemplate,
   compileTemplates  : compileTemplates,
+  compileClientTemplates
+                    : compileClientTemplates,
   redisClient       : redisClient,
   use               : haloidUse,
   setup             : setup,
