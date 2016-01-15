@@ -225,10 +225,10 @@ function announceRoute(aVerb,aRoute){
  * @private
  */
 function createTemplateCompiler(compilerFnName) {
-  return function(templates) {
+  return function(templates, templateDirectory) {
     return mapValues(templates, function(aTemplateSlug){
       var
-        filename = settings.templatesDirectory+aTemplateSlug+'.jade'
+        filename = (templateDirectory || settings.templatesDirectory)+aTemplateSlug+'.jade'
       return jade[compilerFnName](
         fs.readFileSync(filename),
         {
