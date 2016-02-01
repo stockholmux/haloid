@@ -102,6 +102,8 @@ function setup(newSettings) {
   settings = merge(settings, newSettings);
 
   module.exports.settings = settings;
+  
+  client = module.exports.redisClient();
 }
 
 /**
@@ -170,7 +172,7 @@ function haloidUse(app) {
  * @returns {object} redis client
  */
 function redisClient() {
-  return client = redis.createClient(
+  return redis.createClient(
     settings.redis.port,
     settings.redis.ip
   );
