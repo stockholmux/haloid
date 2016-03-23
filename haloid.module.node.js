@@ -135,6 +135,9 @@ function defaultDelivery(tokenToSend, uidToSend, recipient, cb) {
  *
  */
 function haloidUse(app) {
+  var
+    ttl = settings.sessionTTL || (86400 * 7 * 4);
+    
   thisRedisStore = new RedisStore(settings.redis.port, settings.redis.ip);
   
   passwordless.init(thisRedisStore);
@@ -149,9 +152,11 @@ function haloidUse(app) {
       saveUninitialized
                 : true,
       secret    : settings.sessionSecret, //error if not set?
+      cookie    : settings.sessionCookie,
       store     : new RedisSessionStore({
         client : client,
-        prefix : settings.keys.sessions
+        prefix : settings.keys.sessions,
+        ttl    : ttl
       }),
     }),
     
