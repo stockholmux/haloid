@@ -29,7 +29,8 @@ var
     loginFailurePath  : '/',
     redis             : {
       port              : 6379,
-      ip                : '127.0.0.1'
+      ip                : '127.0.0.1',
+      db                : 0
     }
   },
   
@@ -138,8 +139,12 @@ function haloidUse(app) {
   var
     ttl = settings.sessionTTL || (86400 * 7 * 4);
     
-  thisRedisStore = new RedisStore(settings.redis.port, settings.redis.ip);
-  
+  thisRedisStore = new RedisStore(settings.redis.port, settings.redis.ip, {
+    redisstore: {
+        database: settings.redis.db,
+    }
+  });
+
   passwordless.init(thisRedisStore);
   
   passwordless.addDelivery(module.exports.tokenDelievery);
@@ -156,7 +161,8 @@ function haloidUse(app) {
       store     : new RedisSessionStore({
         client : client,
         prefix : settings.keys.sessions,
-        ttl    : ttl
+        ttl    : ttl,
+        db     : settings.redis.db
       }),
     }),
     
